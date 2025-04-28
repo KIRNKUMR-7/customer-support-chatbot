@@ -1,7 +1,7 @@
-import tkinter as tk
-from tkinter import scrolledtext
 import re
+import time
 import random
+import sys
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
@@ -33,6 +33,7 @@ smalltalk_responses = {
 positive_words = ["thank", "thanks", "great", "awesome", "good", "amazing"]
 negative_words = ["bad", "angry", "upset", "worst", "disappointed", "hate"]
 
+# Memory to store previous actions
 memory = {
     "last_intent": None
 }
@@ -60,6 +61,19 @@ def detect_sentiment(text):
     else:
         return "neutral"
 
+def simulate_typing():
+    typing_duration = random.uniform(1.5, 2.5)
+    start_time = time.time()
+    dot_count = 0
+    sys.stdout.write("\n🤖 Typing")
+    sys.stdout.flush()
+    while (time.time() - start_time) < typing_duration:
+        dot_count = (dot_count + 1) % 4
+        sys.stdout.write('\r' + "🤖 Typing" + '.' * dot_count + ' ' * (3 - dot_count))
+        sys.stdout.flush()
+        time.sleep(0.5)
+    print("\r", end="")
+
 def predict_intent(user_text):
     preprocessed = preprocess_text(user_text)
     if preprocessed in smalltalk_responses:
@@ -82,6 +96,21 @@ def predict_intent(user_text):
     else:
         return 'unknown', None
 
+def show_menu():
+    options = {
+        "1": "Order Details 📦",
+        "2": "Refund Process 💸",
+        "3": "Manage Orders 🛒",
+        "4": "Change Delivery Address 🏡",
+        "5": "Update Phone Number 📱",
+        "6": "Talk to Support Agent 🧑‍💻",
+        "7": "Exit Chat 🚪"
+    }
+    print("\n🔹 Please select an option:")
+    for key, value in options.items():
+        print(f"{key}. {value}")
+    return options
+
 def dynamic_suggestions(intent):
     suggestions = {
         "order_details": ["Track your order", "Change delivery address"],
@@ -90,7 +119,11 @@ def dynamic_suggestions(intent):
         "change_address": ["Track updated address order"],
         "change_phone_number": ["Verify new number"],
     }
-    return suggestions.get(intent, [])
+    extra = suggestions.get(intent, [])
+    if extra:
+        print("\n🔔 You might also want to:")
+        for sug in extra:
+            print(f" - {sug}")
 
 # ---------- DATA SETUP ---------- #
 
@@ -134,156 +167,98 @@ y = label_encoder.fit_transform(intents)
 classifier = MultinomialNB()
 classifier.fit(X, y)
 
-# ---------- CHATBOT LOGIC ---------- #
+# ---------- CHATBOT MAIN ---------- #
 
-def chatbot_response(user_input):
-    sentiment = detect_sentiment(user_input)
-    intent = None
-    custom_response = None
+def chatbot():
+    print("="*60)
+    print("🤖 Welcome to E-Shop AI Support Assistant! (Powered by Kiran's Py ChatBot🚀)")
+    print("="*60)
     
-    intent_map = {
-        "1": "order_details",
-        "2": "refund_process",
-        "3": "manage_orders",
-        "4": "change_address",
-        "5": "change_phone_number",
-        "6": "help",
-        "7": "exit"
-    }
-    
-    if user_input in intent_map:
-        intent = intent_map[user_input]
-    else:
-        intent, custom_response = predict_intent(user_input)
-    
-    response = ""
-    suggestions = []
-    
-    if sentiment == "negative":
-        response = "😥 I'm sorry to hear that. We will try to improve your experience!"
-    elif intent == 'ask_for_phone':
-        response = "📞 You can reach us at 1800-123-4567. 📞"
-    elif intent == 'greeting':
-        response = "👋 Hello again! How can I assist you further?"
-        suggestions = list(dynamic_suggestions('greeting'))
-    elif intent == 'help':
-        response = "💬 Connecting you to a support agent... Please wait..."
-    elif intent == 'refund_process':
-        response = "💸 Your refund request is being processed. You will hear from us soon!"
-        suggestions = dynamic_suggestions('refund_process')
-    elif intent == 'order_details':
-        response = "📦 Your order is on its way! Expected delivery: 2-3 days."
-        suggestions = dynamic_suggestions('order_details')
-    elif intent == 'change_address':
-        response = "🏡 You can change your delivery address under 'My Profile > Address Book'."
-        suggestions = dynamic_suggestions('change_address')
-    elif intent == 'change_phone_number':
-        response = "📱 To update your phone number, visit 'My Profile' > 'Edit Phone Number'."
-        suggestions = dynamic_suggestions('change_phone_number')
-    elif intent == 'manage_orders':
-        response = "🛒 Go to 'My Orders' section to manage or cancel your orders."
-        suggestions = dynamic_suggestions('manage_orders')
-    elif intent == 'smalltalk':
-        response = custom_response
-    elif intent == 'thanks':
-        response = "🙏 Always happy to help! Have a great day! 🌟"
-    elif intent == 'identity':
-        response = "🤖 I am E-Shop Bot, here to support you anytime!"
-    elif intent == 'exit':
-        response = "👋 Thank you for visiting! We hope to see you again soon. 🌟"
-    else:
-        response = "🤔 I'm not sure I understood that. Please choose from the menu:"
-        suggestions = [
-            "Order Details 📦",
-            "Refund Process 💸",
-            "Manage Orders 🛒",
-            "Change Delivery Address 🏡",
-            "Update Phone Number 📱",
-            "Talk to Support Agent 🧑‍💻",
-            "Exit Chat 🚪"
-        ]
-    
-    memory['last_intent'] = intent
-    return response, suggestions
+    first_name = input("👤 Please enter your first name: ").strip()
+    while not all(c.isalpha() or c.isspace() for c in first_name) or first_name.strip() == "":
+        print("⚠️ Invalid input. Please use letters and spaces only.")
+        first_name = input("👤 Please enter your first name: ").strip()
 
-# ---------- GUI ---------- #
+    # Optional: Capitalize each word nicely
+    first_name = ' '.join(word.capitalize() for word in first_name.split())
+    
+    simulate_typing()
+    print(f"\n👋 Hello {first_name}! How can I help you today?")
+    options = show_menu()
 
-class ChatbotGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("E-Shop AI Support Assistant 🤖")
-        self.root.geometry("500x600")
+    while True:
+        try:
+            user_input = input("\n🔹 Your input: ").strip()
+        except Exception as e:
+            print(f"⚠️ Error: {e}")
+            continue
         
-        self.chat_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, state='disabled', font=("Arial", 12))
-        self.chat_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        if not user_input:
+            print("⚠️ Empty input. Please try again.")
+            continue
         
-        self.entry_frame = tk.Frame(root)
-        self.entry_frame.pack(fill=tk.X, padx=10, pady=5)
+        sentiment = detect_sentiment(user_input)
         
-        self.user_input = tk.Entry(self.entry_frame, font=("Arial", 12))
-        self.user_input.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        self.user_input.bind("<Return>", self.send_message)
+        if sentiment == "negative":
+            simulate_typing()
+            print("😥 I'm sorry to hear that. We will try to improve your experience!")
         
-        self.send_button = tk.Button(self.entry_frame, text="Send", command=self.send_message)
-        self.send_button.pack(side=tk.RIGHT)
+        intent = None
+        custom_response = None
         
-        self.suggestions_frame = tk.Frame(root)
-        self.suggestions_frame.pack(fill=tk.X, padx=10, pady=(0,10))
-        
-        self.show_welcome_message()
-    
-    def show_welcome_message(self):
-        welcome_text = "🤖 Welcome to E-Shop AI Support Assistant! (Powered by Kiran's Py ChatBot🚀)\n"
-        welcome_text += "Please type your message or select an option below.\n"
-        self.append_message(welcome_text, "bot")
-        self.show_suggestions([
-            "Order Details 📦",
-            "Refund Process 💸",
-            "Manage Orders 🛒",
-            "Change Delivery Address 🏡",
-            "Update Phone Number 📱",
-            "Talk to Support Agent 🧑‍💻",
-            "Exit Chat 🚪"
-        ])
-    
-    def append_message(self, message, sender):
-        self.chat_area.config(state='normal')
-        if sender == "user":
-            self.chat_area.insert(tk.END, f"You: {message}\n", "user")
+        if user_input in options:
+            intent_map = {
+                "1": "order_details",
+                "2": "refund_process",
+                "3": "manage_orders",
+                "4": "change_address",
+                "5": "change_phone_number",
+                "6": "help",
+                "7": "exit"
+            }
+            intent = intent_map.get(user_input)
         else:
-            self.chat_area.insert(tk.END, f"Bot: {message}\n", "bot")
-        self.chat_area.config(state='disabled')
-        self.chat_area.see(tk.END)
-    
-    def clear_suggestions(self):
-        for widget in self.suggestions_frame.winfo_children():
-            widget.destroy()
-    
-    def show_suggestions(self, suggestions):
-        self.clear_suggestions()
-        for suggestion in suggestions:
-            btn = tk.Button(self.suggestions_frame, text=suggestion, command=lambda s=suggestion: self.on_suggestion_click(s))
-            btn.pack(side=tk.LEFT, padx=5, pady=5)
-    
-    def on_suggestion_click(self, suggestion):
-        self.user_input.delete(0, tk.END)
-        self.user_input.insert(0, suggestion)
-        self.send_message()
-    
-    def send_message(self, event=None):
-        user_text = self.user_input.get().strip()
-        if not user_text:
-            return
-        self.append_message(user_text, "user")
-        self.user_input.delete(0, tk.END)
-        response, suggestions = chatbot_response(user_text)
-        self.append_message(response, "bot")
-        if suggestions:
-            self.show_suggestions(suggestions)
+            intent, custom_response = predict_intent(user_input)
+        
+        simulate_typing()
+        
+        if intent == 'ask_for_phone':
+            print("📞 You can reach us at 1800-123-4567. 📞")
+        elif intent == 'greeting':
+            print(f"👋 Hello again, {first_name}!")
+            show_menu()
+        elif intent == 'help':
+            print("💬 Connecting you to a support agent... Please wait...")
+            break
+        elif intent == 'refund_process':
+            print("💸 Your refund request is being processed. You will hear from us soon!")
+            dynamic_suggestions('refund_process')
+        elif intent == 'order_details':
+            print("📦 Your order is on its way! Expected delivery: 2-3 days.")
+            dynamic_suggestions('order_details')
+        elif intent == 'change_address':
+            print("🏡 You can change your delivery address under 'My Profile > Address Book'.")
+            dynamic_suggestions('change_address')
+        elif intent == 'change_phone_number':
+            print("📱 To update your phone number, visit 'My Profile' > 'Edit Phone Number'.")
+            dynamic_suggestions('change_phone_number')
+        elif intent == 'manage_orders':
+            print("🛒 Go to 'My Orders' section to manage or cancel your orders.")
+            dynamic_suggestions('manage_orders')
+        elif intent == 'smalltalk':
+            print(custom_response)
+        elif intent == 'thanks':
+            print("🙏 Always happy to help! Have a great day! 🌟")
+        elif intent == 'identity':
+            print("🤖 I am E-Shop Bot, here to support you anytime!")
+        elif intent == 'exit':
+            print(f"👋 Thank you for visiting, {first_name}! We hope to see you again soon. 🌟")
+            break
         else:
-            self.clear_suggestions()
+            print("🤔 I'm not sure I understood that. Please choose from the menu:")
+            show_menu()
+        
+        memory['last_intent'] = intent
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    gui = ChatbotGUI(root)
-    root.mainloop()
+    chatbot()
